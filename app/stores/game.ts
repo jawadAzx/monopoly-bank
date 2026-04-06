@@ -23,11 +23,34 @@ export const PLAYER_COLORS = [
   { name: 'Pink',   hex: '#ff4dd2' },
 ]
 
+const STORAGE_KEY = 'monopoly-game-state'
+
+function loadState(): Partial<GameState> {
+  if (typeof localStorage === 'undefined') return {}
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function saveState(state: GameState) {
+  if (typeof localStorage === 'undefined') return
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state))
+}
+
+function clearState() {
+  if (typeof localStorage === 'undefined') return
+  localStorage.removeItem(STORAGE_KEY)
+}
+
 export const useGameStore = defineStore('game', {
   state: (): GameState => ({
     players: [],
     started: false,
-    createdAt: ''
+    createdAt: '',
+    ...loadState()
   }),
   actions: {
     startGame(playerNames: string[]) {
@@ -39,14 +62,17 @@ export const useGameStore = defineStore('game', {
       }))
       this.started = true
       this.createdAt = new Date().toISOString()
+      saveState(this.$state)
     },
     addMoney(playerId: string, amount: number) {
       const player = this.players.find(p => p.id === playerId)
       if (player) player.balance += amount
+      saveState(this.$state)
     },
     deductMoney(playerId: string, amount: number) {
       const player = this.players.find(p => p.id === playerId)
       if (player) player.balance -= amount
+      saveState(this.$state)
     },
     transfer(fromId: string, toId: string, amount: number) {
       this.deductMoney(fromId, amount)
@@ -56,7 +82,7 @@ export const useGameStore = defineStore('game', {
       this.players = []
       this.started = false
       this.createdAt = ''
+      clearState()
     }
-  },
-  persist: true
+  }
 })
