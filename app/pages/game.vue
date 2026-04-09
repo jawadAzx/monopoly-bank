@@ -80,7 +80,7 @@
           <div class="absolute inset-0 bg-black/60 backdrop-blur-sm" @click="cancelAction"></div>
 
           <!-- Panel -->
-          <div class="relative bg-gray-900 rounded-t-3xl border-t border-gray-700 shadow-2xl max-h-[85vh] overflow-y-auto">
+          <div ref="sheetPanelRef" class="relative bg-gray-900 rounded-t-3xl border-t border-gray-700 shadow-2xl max-h-[85vh] overflow-y-auto">
             <!-- Handle bar -->
             <div class="flex justify-center pt-3 pb-1">
               <div class="w-10 h-1 bg-gray-600 rounded-full"></div>
@@ -272,6 +272,78 @@ const selectedFrom = ref<Player | null>(null)
 const selectedTo = ref<Player | null>(null)
 const amountInput = ref('')
 const amountInputRef = ref<HTMLInputElement | null>(null)
+const sheetPanelRef = ref<HTMLDivElement | null>(null)
+
+// ── Audio ──────────────────────────────────────────────────────────────────
+let audioCtx: AudioContext | null = null
+
+function getAudioCtx(): AudioContext | null {
+  try {
+    if (!audioCtx || audioCtx.state === 'closed') {
+      audioCtx = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+    }
+    return audioCtx
+  } catch { return null }
+}
+
+function playNote(ctx: AudioContext, freq: number, startOffset: number, duration: number) {
+  const osc = ctx.createOscillator()
+  const gain = ctx.createGain()
+  osc.connect(gain)
+  gain.connect(ctx.destination)
+  osc.type = 'sine'
+  osc.frequency.setValueAtTime(freq, ctx.currentTime + startOffset)
+  gain.gain.setValueAtTime(0.25, ctx.currentTime + startOffset)
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + startOffset + duration)
+  osc.start(ctx.currentTime + startOffset)
+  osc.stop(ctx.currentTime + startOffset + duration + 0.01)
+}
+
+function playTransactionSound(type: ActionType) {
+  const ctx = getAudioCtx()
+  if (!ctx) return
+  try {
+    if (type === 'add') {
+      playNote(ctx, 523, 0, 0.12)
+      playNote(ctx, 659, 0.13, 0.18)
+    } else if (type === 'deduct') {
+      playNote(ctx, 400, 0, 0.10)
+      playNote(ctx, 280, 0.12, 0.18)
+    } else if (type === 'transfer') {
+      playNote(ctx, 440, 0, 0.09)
+      playNote(ctx, 554, 0.10, 0.09)
+      playNote(ctx, 659, 0.20, 0.14)
+    } else if (type === 'go') {
+      playNote(ctx, 523, 0, 0.08)
+      playNote(ctx, 659, 0.10, 0.08)
+      playNote(ctx, 784, 0.20, 0.08)
+      playNote(ctx, 1047, 0.30, 0.22)
+    }
+  } catch { /* ignore */ }
+}
+
+function vibrateTransaction(type: ActionType) {
+  if (!navigator.vibrate) return
+  const patterns: Record<ActionType, number[]> = {
+    add:      [40, 20, 60],
+    deduct:   [80, 30, 80],
+    transfer: [40, 20, 40, 20, 60],
+    go:       [60, 30, 60, 30, 120],
+  }
+  navigator.vibrate(patterns[type])
+}
+
+// Scroll main window to top and reset sheet scroll when dialog closes
+watch(activeAction, (newVal, oldVal) => {
+  if (oldVal !== null && newVal === null) {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+})
+
+// Reset sheet panel scroll when step changes
+watch(step, () => {
+  nextTick(() => { if (sheetPanelRef.value) sheetPanelRef.value.scrollTop = 0 })
+})
 
 const actionTitle = computed(() => ({
   add: 'Add Money', deduct: 'Deduct Money', transfer: 'Transfer', go: 'Pass Go'
@@ -323,6 +395,8 @@ function selectFrom(player: Player) {
   if (activeAction.value === 'go') {
     // Pass Go: immediately add $2M, no amount step
     store.addMoney(player.id, 2_000_000)
+    playTransactionSound('go')
+    vibrateTransaction('go')
     activeAction.value = null
     return
   }
@@ -354,6 +428,7 @@ function confirmWithMultiplier(multiplier: number) {
     }
   }
 
+  const completedAction = activeAction.value
   if (activeAction.value === 'add') {
     store.addMoney(selectedFrom.value!.id, amount)
   } else if (activeAction.value === 'deduct') {
@@ -362,6 +437,8 @@ function confirmWithMultiplier(multiplier: number) {
     store.transfer(selectedFrom.value!.id, selectedTo.value!.id, amount)
   }
 
+  playTransactionSound(completedAction!)
+  vibrateTransaction(completedAction!)
   activeAction.value = null
 }
 
