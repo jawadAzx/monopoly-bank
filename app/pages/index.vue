@@ -85,6 +85,37 @@
           + Add Player
         </button>
 
+        <!-- Board Denomination -->
+        <div class="mb-5">
+          <p class="text-gray-400 text-sm font-medium mb-3">What's your board's denomination?</p>
+          <div class="grid grid-cols-2 gap-2">
+            <button
+              v-for="preset in DENOMINATION_PRESETS"
+              :key="preset.id"
+              @click="selectedPreset = preset"
+              class="flex flex-col items-start px-4 py-3 rounded-xl border-2 transition-all duration-150 text-left active:scale-95"
+              :class="selectedPreset.id === preset.id
+                ? 'border-yellow-400 bg-yellow-400/10'
+                : 'border-gray-700 bg-gray-800 hover:border-gray-500'"
+            >
+              <span class="font-bold text-sm text-white">{{ preset.label }}</span>
+              <span class="text-xs text-gray-400 mt-0.5">Pass Go {{ preset.passGoLabel }}</span>
+            </button>
+          </div>
+          <!-- Custom pass go input -->
+          <div v-if="selectedPreset.id === 'custom'" class="mt-3 flex items-center gap-2">
+            <span class="text-gray-400 font-bold text-lg flex-shrink-0">Pass Go $</span>
+            <input
+              v-model="customPassGo"
+              type="number"
+              inputmode="decimal"
+              min="1"
+              placeholder="e.g. 500000"
+              class="flex-1 bg-gray-800 border border-gray-700 focus:border-yellow-400 rounded-xl px-4 py-3 text-white placeholder-gray-500 outline-none transition-all min-h-[48px]"
+            />
+          </div>
+        </div>
+
         <!-- Start Game button -->
         <button
           @click="startGame"
@@ -112,11 +143,23 @@ const playerSetup = ref([
   { name: '' },
 ])
 
+const DENOMINATION_PRESETS = [
+  { id: 'millions',  label: 'Millions',   passGoLabel: '$2M',   passGo: 2_000_000,  start: 15_000_000 },
+  { id: 'hundredk',  label: 'Hundred-K',  passGoLabel: '$200K', passGo: 200_000,    start: 1_500_000  },
+  { id: 'classic',   label: 'Classic',    passGoLabel: '$200',  passGo: 200,        start: 1_500      },
+  { id: 'custom',    label: 'Custom',     passGoLabel: '—',     passGo: 0,          start: 0          },
+]
+
+const selectedPreset = ref(DENOMINATION_PRESETS[0])
+const customPassGo = ref('')
+
 function handleNewGame() {
   loadError.value = false
   showSetupForm.value = !showSetupForm.value
   if (showSetupForm.value) {
     playerSetup.value = [{ name: '' }, { name: '' }]
+    selectedPreset.value = DENOMINATION_PRESETS[0]
+    customPassGo.value = ''
     validationError.value = ''
   }
 }
@@ -159,7 +202,22 @@ function startGame() {
     return
   }
 
-  store.startGame(names)
+  let passGo: number
+  let startBal: number
+  if (selectedPreset.value.id === 'custom') {
+    const val = Math.floor(Number(customPassGo.value))
+    if (!val || val <= 0) {
+      validationError.value = 'Enter a valid Pass Go amount.'
+      return
+    }
+    passGo = val
+    startBal = Math.floor(val * 7.5)
+  } else {
+    passGo = selectedPreset.value.passGo
+    startBal = selectedPreset.value.start
+  }
+
+  store.startGame(names, passGo, startBal)
   router.push('/game')
 }
 </script>

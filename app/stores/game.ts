@@ -12,6 +12,8 @@ export interface GameState {
   players: Player[]
   started: boolean
   createdAt: string
+  passGoAmount: number
+  startingBalance: number
 }
 
 export const PLAYER_COLORS = [
@@ -46,19 +48,25 @@ function clearState() {
 }
 
 export const useGameStore = defineStore('game', {
-  state: (): GameState => ({
-    players: [],
-    started: false,
-    createdAt: '',
-    ...loadState()
-  }),
+  state: (): GameState => {
+    const saved = loadState()
+    return {
+      players: saved.players ?? [],
+      started: saved.started ?? false,
+      createdAt: saved.createdAt ?? '',
+      passGoAmount: saved.passGoAmount ?? 2_000_000,
+      startingBalance: saved.startingBalance ?? 15_000_000,
+    }
+  },
   actions: {
-    startGame(playerNames: string[]) {
+    startGame(playerNames: string[], passGoAmount: number, startingBalance: number) {
+      this.passGoAmount = passGoAmount
+      this.startingBalance = startingBalance
       this.players = playerNames.map((name, i) => ({
         id: uuidv4(),
         name,
         color: PLAYER_COLORS[i].hex,
-        balance: 15_000_000
+        balance: startingBalance
       }))
       this.started = true
       this.createdAt = new Date().toISOString()
