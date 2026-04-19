@@ -68,6 +68,7 @@
           class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-yellow-400 hover:bg-yellow-300 border border-yellow-300 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
           <span class="text-xl">🎲</span>
           <span class="text-xs font-bold text-gray-900">Pass Go</span>
+          <span class="text-xs text-gray-700 font-medium">{{ formatMoney(store.passGoAmount) }}</span>
         </button>
       </div>
     </div>
@@ -98,7 +99,7 @@
             <!-- Step 1: Select player (From for transfer) -->
             <div v-if="step === 1" class="px-6 py-5">
               <p class="text-gray-400 text-sm font-medium mb-4">
-                {{ activeAction === 'transfer' ? 'Who is paying?' : 'Select player' }}
+                {{ activeAction === 'transfer' ? 'Who is paying?' : activeAction === 'go' ? `Who's collecting ${formatMoney(store.passGoAmount)}?` : 'Select player' }}
               </p>
               <div class="grid grid-cols-2 gap-3">
                 <button
@@ -174,23 +175,17 @@
                 />
               </div>
 
-              <!-- M / K buttons -->
+              <!-- Multiplier buttons (adapt to board denomination) -->
               <div class="grid grid-cols-2 gap-3 mb-3">
                 <button
-                  @click="confirmWithMultiplier(1_000_000)"
+                  v-for="mult in multipliers"
+                  :key="mult.value"
+                  @click="confirmWithMultiplier(mult.value)"
                   :disabled="!amountInput || Number(amountInput) <= 0"
                   class="py-4 rounded-2xl font-black text-xl transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
                   :class="actionColorClass + ' text-white'"
                 >
-                  M <span class="text-sm font-normal opacity-70">×1,000,000</span>
-                </button>
-                <button
-                  @click="confirmWithMultiplier(1_000)"
-                  :disabled="!amountInput || Number(amountInput) <= 0"
-                  class="py-4 rounded-2xl font-black text-xl transition-all duration-150 active:scale-95 disabled:opacity-30 disabled:cursor-not-allowed"
-                  :class="actionColorClass + ' text-white'"
-                >
-                  K <span class="text-sm font-normal opacity-70">×1,000</span>
+                  {{ mult.label }} <span class="text-sm font-normal opacity-70">{{ mult.sub }}</span>
                 </button>
               </div>
 
@@ -345,6 +340,21 @@ watch(step, () => {
   nextTick(() => { if (sheetPanelRef.value) sheetPanelRef.value.scrollTop = 0 })
 })
 
+// Multiplier buttons adapt to the board's denomination
+const multipliers = computed(() => {
+  if (store.startingBalance >= 1_000_000) {
+    return [
+      { label: 'M', sub: '×1,000,000', value: 1_000_000 },
+      { label: 'K', sub: '×1,000',     value: 1_000 },
+    ]
+  }
+  // Classic / small denomination boards: K for big amounts, ×1 for exact entry
+  return [
+    { label: 'K',  sub: '×1,000', value: 1_000 },
+    { label: '×1', sub: 'exact',  value: 1 },
+  ]
+})
+
 const actionTitle = computed(() => ({
   add: 'Add Money', deduct: 'Deduct Money', transfer: 'Transfer', go: 'Pass Go'
 }[activeAction.value!] ?? ''))
@@ -394,7 +404,7 @@ function selectFrom(player: Player) {
   selectedFrom.value = player
   if (activeAction.value === 'go') {
     // Pass Go: immediately add $2M, no amount step
-    store.addMoney(player.id, 2_000_000)
+    store.addMoney(player.id, store.passGoAmount)
     playTransactionSound('go')
     vibrateTransaction('go')
     activeAction.value = null
