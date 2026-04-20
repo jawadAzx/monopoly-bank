@@ -33,8 +33,26 @@
       </div>
     </header>
 
+    <!-- Free Parking Pot -->
+    <div class="max-w-2xl mx-auto px-4 pt-5 pb-1">
+      <div class="flex items-center justify-between bg-gray-900 border border-gray-700 rounded-2xl px-5 py-4">
+        <div class="flex items-center gap-3">
+          <span class="text-2xl">🅿️</span>
+          <div>
+            <div class="text-xs text-gray-400 font-medium uppercase tracking-wide">Free Parking Pot</div>
+            <div class="text-xl font-black" :class="store.bankPot > 0 ? 'text-orange-400' : 'text-gray-500'">
+              {{ formatMoney(store.bankPot) }}
+            </div>
+          </div>
+        </div>
+        <div class="text-xs text-gray-500 text-right max-w-[120px] leading-tight">
+          Collects bank deductions
+        </div>
+      </div>
+    </div>
+
     <!-- Player grid -->
-    <main class="max-w-2xl mx-auto px-4 py-6">
+    <main class="max-w-2xl mx-auto px-4 py-4">
       <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
         <PlayerCard
           v-for="player in store.players"
@@ -48,27 +66,38 @@
 
     <!-- Bottom action bar -->
     <div class="fixed bottom-0 left-0 right-0 z-30 bg-gray-900/95 backdrop-blur-md border-t border-gray-800 px-4 py-3 safe-area-bottom">
-      <div class="max-w-2xl mx-auto grid grid-cols-4 gap-2">
-        <button @click="startAction('add')"
-          class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-green-600 hover:bg-green-500 border border-green-500 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
-          <span class="text-xl">➕</span>
-          <span class="text-xs font-bold text-white">Add</span>
-        </button>
-        <button @click="startAction('deduct')"
-          class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-red-600 hover:bg-red-500 border border-red-500 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
-          <span class="text-xl">➖</span>
-          <span class="text-xs font-bold text-white">Deduct</span>
-        </button>
-        <button @click="startAction('transfer')"
-          class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-blue-600 hover:bg-blue-500 border border-blue-500 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
-          <span class="text-xl">🔁</span>
-          <span class="text-xs font-bold text-white">Transfer</span>
-        </button>
-        <button @click="startAction('go')"
-          class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-yellow-400 hover:bg-yellow-300 border border-yellow-300 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
-          <span class="text-xl">🎲</span>
-          <span class="text-xs font-bold text-gray-900">Pass Go</span>
-          <span class="text-xs text-gray-700 font-medium">{{ formatMoney(store.passGoAmount) }}</span>
+      <div class="max-w-2xl mx-auto flex flex-col gap-2">
+        <div class="grid grid-cols-4 gap-2">
+          <button @click="startAction('add')"
+            class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-green-600 hover:bg-green-500 border border-green-500 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
+            <span class="text-xl">➕</span>
+            <span class="text-xs font-bold text-white">Add</span>
+          </button>
+          <button @click="startAction('deduct')"
+            class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-red-600 hover:bg-red-500 border border-red-500 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
+            <span class="text-xl">➖</span>
+            <span class="text-xs font-bold text-white">Deduct</span>
+          </button>
+          <button @click="startAction('transfer')"
+            class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-blue-600 hover:bg-blue-500 border border-blue-500 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
+            <span class="text-xl">🔁</span>
+            <span class="text-xs font-bold text-white">Transfer</span>
+          </button>
+          <button @click="startAction('go')"
+            class="flex flex-col items-center justify-center gap-1 py-3 px-2 bg-yellow-400 hover:bg-yellow-300 border border-yellow-300 rounded-xl transition-all duration-200 min-h-[64px] active:scale-95">
+            <span class="text-xl">🎲</span>
+            <span class="text-xs font-bold text-gray-900">Pass Go</span>
+            <span class="text-xs text-gray-700 font-medium">{{ formatMoney(store.passGoAmount) }}</span>
+          </button>
+        </div>
+        <button @click="startAction('parking')"
+          class="flex items-center justify-center gap-3 py-3 px-4 rounded-xl transition-all duration-200 active:scale-95 min-h-[52px]"
+          :class="store.bankPot > 0
+            ? 'bg-orange-500 hover:bg-orange-400 border border-orange-400'
+            : 'bg-gray-800 hover:bg-gray-700 border border-gray-700'">
+          <span class="text-xl">🅿️</span>
+          <span class="font-bold text-sm" :class="store.bankPot > 0 ? 'text-white' : 'text-gray-400'">Free Parking</span>
+          <span class="text-sm font-black" :class="store.bankPot > 0 ? 'text-orange-100' : 'text-gray-500'">{{ formatMoney(store.bankPot) }}</span>
         </button>
       </div>
     </div>
@@ -99,7 +128,7 @@
             <!-- Step 1: Select player (From for transfer) -->
             <div v-if="step === 1" class="px-6 py-5">
               <p class="text-gray-400 text-sm font-medium mb-4">
-                {{ activeAction === 'transfer' ? 'Who is paying?' : activeAction === 'go' ? `Who's collecting ${formatMoney(store.passGoAmount)}?` : 'Select player' }}
+                {{ activeAction === 'transfer' ? 'Who is paying?' : activeAction === 'go' ? `Who's collecting ${formatMoney(store.passGoAmount)}?` : activeAction === 'parking' ? `Who landed on Free Parking? Collecting ${formatMoney(store.bankPot)}` : 'Select player' }}
               </p>
               <div class="grid grid-cols-2 gap-3">
                 <button
@@ -259,7 +288,7 @@ onUnmounted(() => {
   window.removeEventListener('keydown', onKeydown)
 })
 
-type ActionType = 'add' | 'deduct' | 'transfer' | 'go'
+type ActionType = 'add' | 'deduct' | 'transfer' | 'go' | 'parking'
 
 const activeAction = ref<ActionType | null>(null)
 const step = ref(1)
@@ -313,6 +342,12 @@ function playTransactionSound(type: ActionType) {
       playNote(ctx, 659, 0.10, 0.08)
       playNote(ctx, 784, 0.20, 0.08)
       playNote(ctx, 1047, 0.30, 0.22)
+    } else if (type === 'parking') {
+      playNote(ctx, 392, 0, 0.08)
+      playNote(ctx, 523, 0.10, 0.08)
+      playNote(ctx, 659, 0.20, 0.08)
+      playNote(ctx, 784, 0.30, 0.08)
+      playNote(ctx, 1047, 0.40, 0.30)
     }
   } catch { /* ignore */ }
 }
@@ -324,6 +359,7 @@ function vibrateTransaction(type: ActionType) {
     deduct:   [80, 30, 80],
     transfer: [40, 20, 40, 20, 60],
     go:       [60, 30, 60, 30, 120],
+    parking:  [60, 20, 60, 20, 60, 20, 120],
   }
   navigator.vibrate(patterns[type])
 }
@@ -356,11 +392,11 @@ const multipliers = computed(() => {
 })
 
 const actionTitle = computed(() => ({
-  add: 'Add Money', deduct: 'Deduct Money', transfer: 'Transfer', go: 'Pass Go'
+  add: 'Add Money', deduct: 'Deduct Money', transfer: 'Transfer', go: 'Pass Go', parking: 'Free Parking'
 }[activeAction.value!] ?? ''))
 
 const actionEmoji = computed(() => ({
-  add: '➕', deduct: '➖', transfer: '🔁', go: '🎲'
+  add: '➕', deduct: '➖', transfer: '🔁', go: '🎲', parking: '🅿️'
 }[activeAction.value!] ?? ''))
 
 const actionColorClass = computed(() => ({
@@ -368,6 +404,7 @@ const actionColorClass = computed(() => ({
   deduct: 'bg-red-600 hover:bg-red-500',
   transfer: 'bg-blue-600 hover:bg-blue-500',
   go: 'bg-yellow-500 hover:bg-yellow-400',
+  parking: 'bg-orange-500 hover:bg-orange-400',
 }[activeAction.value!] ?? 'bg-gray-600'))
 
 const insufficientFunds = ref(false)
@@ -403,10 +440,16 @@ function cancelAction() {
 function selectFrom(player: Player) {
   selectedFrom.value = player
   if (activeAction.value === 'go') {
-    // Pass Go: immediately add $2M, no amount step
     store.addMoney(player.id, store.passGoAmount)
     playTransactionSound('go')
     vibrateTransaction('go')
+    activeAction.value = null
+    return
+  }
+  if (activeAction.value === 'parking') {
+    store.collectFreeParking(player.id)
+    playTransactionSound('parking')
+    vibrateTransaction('parking')
     activeAction.value = null
     return
   }

@@ -14,6 +14,7 @@ export interface GameState {
   createdAt: string
   passGoAmount: number
   startingBalance: number
+  bankPot: number
 }
 
 export const PLAYER_COLORS = [
@@ -56,16 +57,18 @@ export const useGameStore = defineStore('game', {
       createdAt: saved.createdAt ?? '',
       passGoAmount: saved.passGoAmount ?? 2_000_000,
       startingBalance: saved.startingBalance ?? 15_000_000,
+      bankPot: saved.bankPot ?? 0,
     }
   },
   actions: {
     startGame(playerNames: string[], passGoAmount: number, startingBalance: number) {
       this.passGoAmount = passGoAmount
       this.startingBalance = startingBalance
+      this.bankPot = 0
       this.players = playerNames.map((name, i) => ({
         id: uuidv4(),
         name,
-        color: PLAYER_COLORS[i].hex,
+        color: PLAYER_COLORS[i % PLAYER_COLORS.length]!.hex,
         balance: startingBalance
       }))
       this.started = true
@@ -77,19 +80,29 @@ export const useGameStore = defineStore('game', {
       if (player) player.balance += amount
       saveState(this.$state)
     },
-    deductMoney(playerId: string, amount: number) {
+    deductMoney(playerId: string, amount: number, addToPot = true) {
       const player = this.players.find(p => p.id === playerId)
       if (player) player.balance -= amount
+      if (addToPot) this.bankPot += amount
       saveState(this.$state)
     },
     transfer(fromId: string, toId: string, amount: number) {
-      this.deductMoney(fromId, amount)
+      this.deductMoney(fromId, amount, false)
       this.addMoney(toId, amount)
+    },
+    collectFreeParking(playerId: string) {
+      const player = this.players.find(p => p.id === playerId)
+      if (player) {
+        player.balance += this.bankPot
+        this.bankPot = 0
+      }
+      saveState(this.$state)
     },
     resetGame() {
       this.players = []
       this.started = false
       this.createdAt = ''
+      this.bankPot = 0
       clearState()
     }
   }
