@@ -80,15 +80,20 @@ export const useGameStore = defineStore('game', {
       if (player) player.balance += amount
       saveState(this.$state)
     },
-    deductMoney(playerId: string, amount: number, addToPot = true) {
+    deductMoney(playerId: string, amount: number) {
       const player = this.players.find(p => p.id === playerId)
       if (player) player.balance -= amount
-      if (addToPot) this.bankPot += amount
       saveState(this.$state)
     },
     transfer(fromId: string, toId: string, amount: number) {
-      this.deductMoney(fromId, amount, false)
+      this.deductMoney(fromId, amount)
       this.addMoney(toId, amount)
+    },
+    transferToBank(fromId: string, amount: number) {
+      const player = this.players.find(p => p.id === fromId)
+      if (player) player.balance -= amount
+      this.bankPot += amount
+      saveState(this.$state)
     },
     collectFreeParking(playerId: string) {
       const player = this.players.find(p => p.id === playerId)

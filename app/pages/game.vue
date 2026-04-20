@@ -169,6 +169,17 @@
                     <div class="text-gray-400 text-xs">{{ formatMoney(player.balance) }}</div>
                   </div>
                 </button>
+                <!-- Bank option -->
+                <button
+                  @click="selectToBank"
+                  class="flex items-center gap-3 px-4 py-4 rounded-2xl border-2 border-orange-500 bg-orange-500/20 transition-all duration-150 active:scale-95 min-h-[64px]"
+                >
+                  <div class="w-5 h-5 rounded-full flex-shrink-0 bg-orange-400 flex items-center justify-center text-xs">🏦</div>
+                  <div class="text-left">
+                    <div class="text-white font-semibold text-sm">Bank</div>
+                    <div class="text-orange-300 text-xs">→ Free Parking Pot</div>
+                  </div>
+                </button>
               </div>
             </div>
 
@@ -179,7 +190,12 @@
                 <div class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: selectedFrom!.color }"></div>
                 <span class="text-white font-semibold text-sm">{{ selectedFrom!.name }}</span>
                 <span class="text-gray-400 text-xs">{{ formatMoney(selectedFrom!.balance) }}</span>
-                <template v-if="selectedTo">
+                <template v-if="selectedToBank">
+                  <span class="text-gray-500 text-sm">→</span>
+                  <span class="text-sm">🏦</span>
+                  <span class="text-orange-300 font-semibold text-sm">Bank</span>
+                </template>
+                <template v-else-if="selectedTo">
                   <span class="text-gray-500 text-sm">→</span>
                   <div class="w-3 h-3 rounded-full flex-shrink-0" :style="{ backgroundColor: selectedTo.color }"></div>
                   <span class="text-white font-semibold text-sm">{{ selectedTo.name }}</span>
@@ -294,6 +310,7 @@ const activeAction = ref<ActionType | null>(null)
 const step = ref(1)
 const selectedFrom = ref<Player | null>(null)
 const selectedTo = ref<Player | null>(null)
+const selectedToBank = ref(false)
 const amountInput = ref('')
 const amountInputRef = ref<HTMLInputElement | null>(null)
 const sheetPanelRef = ref<HTMLDivElement | null>(null)
@@ -428,6 +445,7 @@ function startAction(action: ActionType) {
   step.value = 1
   selectedFrom.value = null
   selectedTo.value = null
+  selectedToBank.value = false
   amountInput.value = ''
   insufficientFunds.value = false
 }
@@ -463,6 +481,14 @@ function selectFrom(player: Player) {
 
 function selectTo(player: Player) {
   selectedTo.value = player
+  selectedToBank.value = false
+  step.value = 3
+  nextTick(() => amountInputRef.value?.focus())
+}
+
+function selectToBank() {
+  selectedTo.value = null
+  selectedToBank.value = true
   step.value = 3
   nextTick(() => amountInputRef.value?.focus())
 }
@@ -487,7 +513,11 @@ function confirmWithMultiplier(multiplier: number) {
   } else if (activeAction.value === 'deduct') {
     store.deductMoney(selectedFrom.value!.id, amount)
   } else if (activeAction.value === 'transfer') {
-    store.transfer(selectedFrom.value!.id, selectedTo.value!.id, amount)
+    if (selectedToBank.value) {
+      store.transferToBank(selectedFrom.value!.id, amount)
+    } else {
+      store.transfer(selectedFrom.value!.id, selectedTo.value!.id, amount)
+    }
   }
 
   playTransactionSound(completedAction!)
